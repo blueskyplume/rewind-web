@@ -1,5 +1,5 @@
 import React, { useState, forwardRef, useImperativeHandle } from 'react';
-import { Checkbox, Button } from 'antd';
+import { Checkbox, Button, Input } from 'antd';
 import OperateModal from '@/components/operate-modal';
 import { useTranslation } from '@/utils/i18n';
 import type { CheckboxProps } from 'antd';
@@ -7,6 +7,7 @@ import fieldSettingModalStyle from './index.module.scss';
 import { HolderOutlined, CloseOutlined } from '@ant-design/icons';
 import { cloneDeep } from 'lodash';
 import { ColumnItem, GroupFieldItem } from '@/types/index';
+const { Search } = Input;
 
 interface DragItem {
   index: number;
@@ -32,6 +33,7 @@ const FieldSettingModal = forwardRef<FieldModalRef, FieldModalProps>(
     const [checkedFields, setCheckedFields] = useState<string[]>(
       choosableFields.map((field) => field.key)
     );
+    const [searchValue, setSearchValue] = useState<string>('');
     const [dragFields, setDragFields] = useState<ColumnItem[]>([]);
     const [dragItem, setDragItem] = useState<DragItem | null>(null);
     const [dragOverItem, setDragOverItem] = useState<DragItem | null>(null);
@@ -68,6 +70,29 @@ const FieldSettingModal = forwardRef<FieldModalRef, FieldModalProps>(
       });
       setDragFields(fields);
     };
+
+    // 搜索
+    const onSearch = (value: string) => {
+      setSearchValue(value);
+      console.log('搜索结果：', searchFilter(groupFields));
+    }
+
+    const searchFilter = (arrs: GroupFieldItem[] | undefined) => {
+      if (searchValue.trim() === '') return arrs;
+      const filters: GroupFieldItem[] | undefined = cloneDeep(arrs);
+      return filters?.filter((item) => {
+        const childs: ColumnItem[] = []
+        item?.child.forEach((v) => {
+          if (v.title.includes(searchValue)) {
+            childs.push(v);
+          }
+        })
+        if (childs.length) {
+          item.child = childs;
+          return true;
+        }
+      })
+    }
 
     // 清空某项
     const clearCheckedItem = (key: string) => {
@@ -159,6 +184,9 @@ const FieldSettingModal = forwardRef<FieldModalRef, FieldModalProps>(
           <div
             className={`${fieldSettingModalStyle.leftSide} w-2/3 p-4 border-r`}
           >
+            <div className={`${fieldSettingModalStyle.searchBox}`}>
+              <Search placeholder={t('monitor.search.searchCriteria')} onSearch={onSearch} style={{ width: 200 }} />
+            </div>
             <div>
               <Checkbox
                 className="mb-[10px]"
@@ -174,7 +202,7 @@ const FieldSettingModal = forwardRef<FieldModalRef, FieldModalProps>(
               onChange={handleCheckboxChange}
             >
               {groupFields?.length ? (
-                groupFields.map((item) => (
+                searchFilter(groupFields)?.map((item) => (
                   <div key={item.key}>
                     <div className="font-bold mb-[10px]">{item.title}</div>
                     <div className="flex items-center flex-wrap">
